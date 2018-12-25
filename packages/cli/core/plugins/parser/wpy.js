@@ -15,6 +15,7 @@ exports = module.exports = function () {
     let sfc;
     let file = comp.path;
     let type = comp.type;
+    let startTime = comp.time;
     if (!this.compiled[file]) {
       this.compiled[file] = {};
     }
@@ -117,8 +118,12 @@ exports = module.exports = function () {
         all.forEach((parsed, i) => {
           sfc.styles[i].parsed = parsed;
         }) ;
+        context.startTime = startTime;
+        console.log(file, ':', new Date().getTime() - startTime);
+
         return context;
       }).catch(e => {
+        console.error(e);
         throw e;
       });
     } else {

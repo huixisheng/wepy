@@ -141,12 +141,14 @@ class Compile extends Hook {
 
     this.register('output-assets', function (list) {
       list.forEach(file => {
+        console.log('output-assets', file.targetFile);
         fs.outputFile(file.targetFile, file.outputCode, file.encoding || 'utf-8');
       });
     });
 
     this.register('output-static', function () {
       let paths = this.options.static;
+      console.log('output-static', paths);
       let copy = (p) => {
         let relative = path.relative(path.join(this.context, this.options.src), path.join(this.context, p));
         fs.copy(path.join(this.context, p), path.join(this.context, this.options.target, relative[0] === '.' ? p : relative));
@@ -168,9 +170,10 @@ class Compile extends Hook {
     if (this.running) {
       return;
     }
+    this.startTime = new Date().getTime();
     this.running = true;
 
-    this.hookUnique('wepy-parser-wpy', { path: this.options.entry, type: 'app' }).then(app => {
+    this.hookUnique('wepy-parser-wpy', { path: this.options.entry, type: 'app', time: new Date().getTime() }).then(app => {
 
       let sfc = app.sfc;
       let script = sfc.script;
@@ -202,7 +205,8 @@ class Compile extends Hook {
       }
 
       let tasks = pages.map(v => {
-        return this.hookUnique('wepy-parser-wpy', { path: v, type: 'page' });
+                this.logger.info(v);
+        return this.hookUnique('wepy-parser-wpy', { path: v, type: 'page', time: new Date().getTime() });
       });
 
       this.hookSeq('build-app', app);
@@ -228,6 +232,7 @@ class Compile extends Hook {
 
           parsedComponents.forEach(com => {
             if (com.type === 'wepy') { // wepy 组件
+              com.time = new Date().getTime()
               tasks.push(this.hookUnique('wepy-parser-wpy', com));
             } else if (com.type === 'weapp') { // 原生组件
               tasks.push(this.hookUnique('wepy-parser-component', com));
@@ -252,6 +257,7 @@ class Compile extends Hook {
       this.hookUnique('output-static')
     }).then(() => {
       this.running = false;
+      console.log(new Date().getTime() - this.startTime);
       this.logger.info('process finished');
       if (this.options.watch) {
         this.logger.info('watching...');
@@ -295,12 +301,14 @@ class Compile extends Hook {
     }
 
     chokidar.watch([this.options.src], watchOption).on('all', (evt, filepath) => {
+      console.log('chokidar.watch', evt, filepath);
       if (evt === 'change') {
         let absolutePath = path.resolve(filepath);
-        if (this.involved[absolutePath]) {
+        console.log('absolutePath', absolutePath, this.involved[absolutePath]);
+        // if (this.involved[absolutePath]) {
           this.logger.silly('watch', `Watcher triggered by file changes: ${absolutePath}`);
           this.clear().start();
-        }
+        // }
       }
     })
   }
@@ -322,7 +330,6 @@ class Compile extends Hook {
       if (!this.hasHook(hookKey)) {
         throw `Missing plugins ${hookKey}`;
       }
-
       this.involved[ctx.file] = 1;
       return this.hookUnique(hookKey, node, ctx)
         .then(node => {
@@ -366,8 +373,8 @@ class Compile extends Hook {
         let code = sfc[k].outputCode;
 
         this.hookAsyncSeq('output-file', { filename, code }).then(({ filename, code }) => {
-          logger.silly('output', 'write file: ' + filename);
-          fs.outputFile(filename, sfc[k].outputCode, function (err) {
+          logger.silly('output', 'write file: ' + filename, new Date().getTime() - item.startTime);
+          fs.outputFile(filename, code, function (err) {
             if (err) {
               console.log(err);
             }

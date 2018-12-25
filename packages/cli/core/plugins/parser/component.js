@@ -77,6 +77,13 @@ exports = module.exports = function () {
       return this.applyCompiler(sfc.styles[0], context).then(parsed => {
         sfc.styles[0].parsed = parsed;
       })
-    }).then(() => context);
+    }).then(() => {
+      if (typeof content === 'object') {
+        content.startTime = com.time;
+      }
+      return context
+    }).catch((error) => {
+      console.error(error);
+    });
   });
 }

@@ -57,7 +57,7 @@ exports = module.exports = function () {
       let target = path.parse(targetFile);
       comp.outputFile = path.join(target.dir, target.name);
     });
-
+    // this.logger.info('component', 'building components', new Date().getTime() - comps.startTime);
     return comps;
   });
 };

@@ -29,6 +29,7 @@ class ModuleSet {
       this._type[file] = type;
     }
 
+
     return id;
   }
 
